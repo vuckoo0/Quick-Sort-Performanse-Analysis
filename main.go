@@ -9,6 +9,10 @@ import (
 	"runtime/pprof"
 )
 
+const (
+	numbetOfCycles = 30
+)
+
 var (
 	err        error
 	slice      qs.Slice
@@ -28,6 +32,7 @@ func runCycle() {
 func main() {
 
 	flag.Parse()
+
 	if *cpuProfile != "" {
 		cpuFile, err := os.Create(*cpuProfile)
 		if err != nil {
@@ -48,4 +53,9 @@ func main() {
 		defer memFile.Close()
 	}
 
+	cycle := 0
+	for cycle <= numbetOfCycles {
+		runCycle()
+		cycle++
+	}
 }
