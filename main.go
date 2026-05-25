@@ -17,15 +17,16 @@ var (
 	err        error
 	slice      qs.Slice
 	cpuProfile = flag.String("cpuprofile", "", "Write cpu profile to file")
-	memProfile = flag.String("memprofile", "", "Wtire memory profile to file")
+	memProfile = flag.String("memprofile", "", "Write memory profile to file")
 )
 
-func runCycle() {
+func runCycle(cycle int) {
 
 	slice.GenerateSlice()
 	err = slice.QuickSort(qs.PivotLast)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("[Cycle: %d] %v", cycle, err)
+		os.Exit(0)
 	}
 }
 
@@ -55,7 +56,7 @@ func main() {
 
 	cycle := 0
 	for cycle <= numbetOfCycles {
-		runCycle()
+		runCycle(cycle)
 		cycle++
 	}
 }
