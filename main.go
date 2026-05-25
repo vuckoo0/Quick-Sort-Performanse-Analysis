@@ -12,7 +12,8 @@ import (
 var (
 	err        error
 	slice      qs.Slice
-	cpuProfile = flag.String("cpuprofile", "", "write cpu profile to file")
+	cpuProfile = flag.String("cpuprofile", "", "Write cpu profile to file")
+	memProfile = flag.String("memprofile", "", "Wtire memory profile to file")
 )
 
 func runCycle() {
@@ -28,13 +29,23 @@ func main() {
 
 	flag.Parse()
 	if *cpuProfile != "" {
-		file, err := os.Create(*cpuProfile)
+		cpuFile, err := os.Create(*cpuProfile)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		pprof.StartCPUProfile(file)
+		pprof.StartCPUProfile(cpuFile)
 		defer pprof.StopCPUProfile()
+	}
+
+	if *memProfile != "" {
+		memFile, err := os.Create(*memProfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		pprof.WriteHeapProfile(memFile)
+		defer memFile.Close()
 	}
 
 }
