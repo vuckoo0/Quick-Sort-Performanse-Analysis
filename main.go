@@ -22,12 +22,14 @@ var (
 
 func runCycle(cycle int) {
 
-	slice.GenerateSlice()
+	slice = qs.GenerateSlice()
 	err = slice.QuickSort(qs.PivotLast)
 	if err != nil {
-		fmt.Printf("[Cycle: %d] %v", cycle, err)
+		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
 		os.Exit(0)
 	}
+
+	fmt.Printf("[Cycle: %d]\tSuccsesful cycle...\n", cycle)
 }
 
 func main() {

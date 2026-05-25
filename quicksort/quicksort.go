@@ -24,10 +24,13 @@ var (
 	PartitionOutOfBounds error = errors.New("Partition imposible!")
 )
 
-func (s Slice) GenerateSlice() {
+func GenerateSlice() Slice {
+	var s Slice
 	for i := 0; i < int(math.Pow(2, 16)); i++ {
 		s = append(s, float64(rand.Intn(int(math.Pow(2, 32)))))
 	}
+
+	return s
 }
 
 func (s Slice) QuickSort(pivotPos PivotPosition) error {
