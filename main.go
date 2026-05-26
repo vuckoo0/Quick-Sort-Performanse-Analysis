@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	numbetOfCycles = 30
+	numbetOfCycles = 1
 )
 
 var (
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	cycle := 0
-	for cycle <= numbetOfCycles {
+	for cycle < numbetOfCycles {
 		runCycle(cycle)
 		cycle++
 	}
