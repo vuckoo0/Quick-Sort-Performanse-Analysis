@@ -19,19 +19,20 @@ var (
 
 	cpuProfileFlag = flag.String("cpuprofile", "", "Write cpu profile to file")
 	memProfileFlag = flag.String("memprofile", "", "Write memory profile to file")
-	pivotFlag      = flag.String("pivot", "", "Enter the pivot position")
-	sliceOrderFlag = flag.String("slice", "", "Determents the order state of the slice")
+
+	pivotPosition = "last"
+	sliceOrder    = "random"
 )
 
 func runCycle(cycle int) {
 
-	slice, err = qs.GenerateSlice(*sliceOrderFlag)
+	slice, err = qs.GenerateSlice(sliceOrder)
 	if err != nil {
 		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
 		os.Exit(0)
 	}
 
-	err = slice.QuickSort(*pivotFlag)
+	err = slice.QuickSort(pivotPosition)
 	if err != nil {
 		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
 		os.Exit(0)

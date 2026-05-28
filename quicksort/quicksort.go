@@ -9,9 +9,6 @@ import (
 
 type (
 	Slice []float64
-
-	PivotPosition int
-	SliceOrder    int
 )
 
 const (
@@ -29,14 +26,14 @@ var (
 	Nan int = int(math.NaN())
 )
 
-func GenerateSlice(sliceFlag string) (Slice, error) {
+func GenerateSlice(sliceOrder string) (Slice, error) {
 
 	var (
 		s    Slice
 		step float64 = float64(maxValue) / float64(size)
 	)
 
-	switch sliceFlag {
+	switch sliceOrder {
 
 	case "random":
 		for i := 0; i < int(math.Pow(2, 16)); i++ {
@@ -92,9 +89,9 @@ func GenerateSlice(sliceFlag string) (Slice, error) {
 	return s, nil
 }
 
-func Pivot(low, high int, pivotFlag string) (int, error) {
+func Pivot(low, high int, pivotPosition string) (int, error) {
 
-	switch pivotFlag {
+	switch pivotPosition {
 
 	case "first":
 		return low, nil
@@ -113,7 +110,7 @@ func Pivot(low, high int, pivotFlag string) (int, error) {
 	}
 }
 
-func (s Slice) QuickSort(pivotFlag string) error {
+func (s Slice) QuickSort(pivotPosition string) error {
 
 	if len(s) == 1 {
 		return nil
@@ -123,7 +120,7 @@ func (s Slice) QuickSort(pivotFlag string) error {
 		return ArrayOutOfBounds
 	}
 
-	pivotIndex, err := Pivot(0, len(s), pivotFlag)
+	pivotIndex, err := Pivot(0, len(s), pivotPosition)
 
 	if err != nil {
 		return err
