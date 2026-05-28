@@ -14,16 +14,24 @@ const (
 )
 
 var (
-	err        error
-	slice      qs.Slice
-	cpuProfile = flag.String("cpuprofile", "", "Write cpu profile to file")
-	memProfile = flag.String("memprofile", "", "Write memory profile to file")
+	err   error
+	slice qs.Slice
+
+	cpuProfileFlag = flag.String("cpuprofile", "", "Write cpu profile to file")
+	memProfileFlag = flag.String("memprofile", "", "Write memory profile to file")
+	pivotFlag      = flag.String("pivot", "", "Enter the pivot position")
+	sliceOrderFlag = flag.String("slice", "", "Determents the order state of the slice")
 )
 
 func runCycle(cycle int) {
 
-	slice = qs.GenerateSlice()
-	err = slice.QuickSort(qs.PivotLast)
+	slice, err = qs.GenerateSlice(*sliceOrderFlag)
+	if err != nil {
+		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
+		os.Exit(0)
+	}
+
+	err = slice.QuickSort(*pivotFlag)
 	if err != nil {
 		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
 		os.Exit(0)
@@ -36,8 +44,8 @@ func main() {
 
 	flag.Parse()
 
-	if *cpuProfile != "" {
-		cpuFile, err := os.Create(*cpuProfile)
+	if *cpuProfileFlag != "" {
+		cpuFile, err := os.Create(*cpuProfileFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -46,8 +54,8 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	if *memProfile != "" {
-		memFile, err := os.Create(*memProfile)
+	if *memProfileFlag != "" {
+		memFile, err := os.Create(*memProfileFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
