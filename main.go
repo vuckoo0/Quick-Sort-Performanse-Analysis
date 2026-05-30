@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
+	"time"
 )
 
 const (
@@ -21,24 +23,41 @@ var (
 	memProfileFlag = flag.String("memprofile", "", "Write memory profile to file")
 
 	pivotPosition = "last"
-	sliceOrder    = "random"
+	sliceOrder    = "block"
 )
 
-func runCycle(cycle int) {
+func runCycle(cycle int, resultsFile *os.File) {
+	var memStatsBefore, memStatsAfter runtime.MemStats
+
+	runtime.ReadMemStats(&memStatsBefore)
+	startTime := time.Now()
 
 	slice, err = qs.GenerateSlice(sliceOrder)
 	if err != nil {
-		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
-		os.Exit(0)
+		fmt.Printf("[Cycle: %d] Error: %v\n", cycle, err)
+		os.Exit(1)
 	}
 
 	err = slice.QuickSort(pivotPosition)
 	if err != nil {
-		fmt.Printf("[Cycle: %d] Error: %v", cycle, err)
-		os.Exit(0)
+		fmt.Printf("[Cycle: %d] Error: %v\n", cycle, err)
+		os.Exit(1)
 	}
 
-	fmt.Printf("[Cycle: %d]\tSuccsesful cycle...\n", cycle)
+	elapsed := time.Since(startTime)
+	runtime.ReadMemStats(&memStatsAfter)
+
+	memBefore := memStatsBefore.Alloc / 1024
+	memAfter := memStatsAfter.Alloc / 1024
+	memDiff := int64(memAfter) - int64(memBefore)
+
+	result := fmt.Sprintf("[Cycle: %2d] Time: %v | Memory Before: %d KB | Memory After: %d KB | Diff: %d KB\n",
+		cycle, elapsed, memBefore, memAfter, memDiff)
+
+	fmt.Print(result)
+	if resultsFile != nil {
+		resultsFile.WriteString(fmt.Sprintf("%v %d\n", elapsed, memDiff))
+	}
 }
 
 func main() {
@@ -65,9 +84,19 @@ func main() {
 		defer memFile.Close()
 	}
 
-	cycle := 0
-	for cycle < numbetOfCycles {
-		runCycle(cycle)
-		cycle++
+	resultsFile, err := os.OpenFile("results.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer resultsFile.Close()
+
+	header := fmt.Sprintf("Starting %d cycles with pivot='%s', sliceOrder='%s'\n\n", numbetOfCycles, pivotPosition, sliceOrder)
+	fmt.Print(header)
+
+	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
+		runCycle(cycle, resultsFile)
+	}
+
+	footer := fmt.Sprintf("\nCompleted %d cycles. Results saved to results.log\n", numbetOfCycles)
+	fmt.Print(footer)
 }
