@@ -7,12 +7,13 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"runtime/pprof"
 	"time"
 )
 
 const (
-	numbetOfCycles = 1
+	numbetOfCycles = 30
 )
 
 var (
@@ -22,8 +23,8 @@ var (
 	cpuProfileFlag = flag.String("cpuprofile", "", "Write cpu profile to file")
 	memProfileFlag = flag.String("memprofile", "", "Write memory profile to file")
 
-	pivotPosition = "last"
-	sliceOrder    = "block"
+	pivotPosition = "middle" // random
+	sliceOrder    = "random"
 )
 
 func runCycle(cycle int, resultsFile *os.File) {
@@ -44,25 +45,29 @@ func runCycle(cycle int, resultsFile *os.File) {
 		os.Exit(1)
 	}
 
-	elapsed := time.Since(startTime)
+	elapsed := time.Since(startTime).Milliseconds()
 	runtime.ReadMemStats(&memStatsAfter)
 
-	memBefore := memStatsBefore.Alloc / 1024
-	memAfter := memStatsAfter.Alloc / 1024
+	memBefore := memStatsBefore.TotalAlloc / 1024
+	memAfter := memStatsAfter.TotalAlloc / 1024
 	memDiff := int64(memAfter) - int64(memBefore)
 
-	result := fmt.Sprintf("[Cycle: %2d] Time: %v | Memory Before: %d KB | Memory After: %d KB | Diff: %d KB\n",
+	result := fmt.Sprintf("[Cycle: %2d] Time: %v | TotalAlloc Before: %d KB | TotalAlloc After: %d KB | Diff: %d KB\n",
 		cycle, elapsed, memBefore, memAfter, memDiff)
 
 	fmt.Print(result)
 	if resultsFile != nil {
-		resultsFile.WriteString(fmt.Sprintf("%v,", elapsed))
+		resultsFile.WriteString(fmt.Sprintf("%d,", memDiff))
 	}
 }
 
 func main() {
 
 	flag.Parse()
+
+	// Disable the GC during benchmarking to prevent intermediate GC pauses
+	// and live heap drops from corrupting the per-cycle delta.
+	debug.SetGCPercent(-1)
 
 	if *cpuProfileFlag != "" {
 		cpuFile, err := os.Create(*cpuProfileFlag)
@@ -93,6 +98,25 @@ func main() {
 	header := fmt.Sprintf("Starting %d cycles with pivot='%s', sliceOrder='%s'\n\n", numbetOfCycles, pivotPosition, sliceOrder)
 	fmt.Print(header)
 
+	resultsFile.WriteString("\n")
+	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
+		runCycle(cycle, resultsFile)
+	}
+
+	sliceOrder = "inverse"
+	resultsFile.WriteString("\n")
+	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
+		runCycle(cycle, resultsFile)
+	}
+
+	sliceOrder = "nearly"
+	resultsFile.WriteString("\n")
+	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
+		runCycle(cycle, resultsFile)
+	}
+
+	sliceOrder = "block"
+	resultsFile.WriteString("\n")
 	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
 		runCycle(cycle, resultsFile)
 	}
