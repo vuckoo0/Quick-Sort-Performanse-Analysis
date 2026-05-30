@@ -56,7 +56,7 @@ func runCycle(cycle int, resultsFile *os.File) {
 
 	fmt.Print(result)
 	if resultsFile != nil {
-		resultsFile.WriteString(fmt.Sprintf("%v %d\n", elapsed, memDiff))
+		resultsFile.WriteString(fmt.Sprintf("%v,", elapsed))
 	}
 }
 
