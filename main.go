@@ -2,44 +2,48 @@ package main
 
 import (
 	qs "IstrazivackiRadQuickSort/quicksort"
+
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
+	"syscall"
+	"time"
+
+	"os/signal"
 	"runtime/debug"
 	"runtime/pprof"
-	"time"
-)
-
-const (
-	numbetOfCycles = 30
 )
 
 var (
-	err   error
-	slice qs.Slice
+	numbetOfCycles = 30
+	err            error
+	slice          qs.Slice
+
+	piv qs.PivotPos
+	slc qs.SliceOrd
 
 	cpuProfileFlag = flag.String("cpuprofile", "", "Write cpu profile to file")
 	memProfileFlag = flag.String("memprofile", "", "Write memory profile to file")
 
-	pivotPosition = "middle" // random
-	sliceOrder    = "random"
+	pivotPosition qs.PivotPos
+	sliceOrder    qs.SliceOrd
 )
 
-func runCycle(cycle int, resultsFile *os.File) {
+func runCycle(cycle int, slc qs.SliceOrd, pivot qs.PivotPos, timePerCel, memoryPerCel *string) {
 	var memStatsBefore, memStatsAfter runtime.MemStats
 
 	runtime.ReadMemStats(&memStatsBefore)
 	startTime := time.Now()
 
-	slice, err = qs.GenerateSlice(sliceOrder)
+	slice, err = qs.GenerateSlice(slc)
 	if err != nil {
 		fmt.Printf("[Cycle: %d] Error: %v\n", cycle, err)
 		os.Exit(1)
 	}
 
-	err = slice.QuickSort(pivotPosition)
+	err = slice.QuickSort(pivot)
 	if err != nil {
 		fmt.Printf("[Cycle: %d] Error: %v\n", cycle, err)
 		os.Exit(1)
@@ -48,26 +52,55 @@ func runCycle(cycle int, resultsFile *os.File) {
 	elapsed := time.Since(startTime).Milliseconds()
 	runtime.ReadMemStats(&memStatsAfter)
 
-	memBefore := memStatsBefore.TotalAlloc / 1024
-	memAfter := memStatsAfter.TotalAlloc / 1024
-	memDiff := int64(memAfter) - int64(memBefore)
+	memDiff := int64(memStatsAfter.TotalAlloc/1024) - int64(memStatsBefore.TotalAlloc/1024)
 
-	result := fmt.Sprintf("[Cycle: %2d] Time: %v | TotalAlloc Before: %d KB | TotalAlloc After: %d KB | Diff: %d KB\n",
-		cycle, elapsed, memBefore, memAfter, memDiff)
+	fmt.Printf("[%13s | %13s | Cycle: %2d] Time: %4v | Memory: %d KB\n", pivot.ToString(), slc.ToString(), cycle, elapsed, memDiff)
 
-	fmt.Print(result)
-	if resultsFile != nil {
-		resultsFile.WriteString(fmt.Sprintf("%d,", memDiff))
+	*timePerCel += fmt.Sprintf("%v, ", elapsed)
+	*memoryPerCel += fmt.Sprintf("%d, ", memDiff)
+
+	// if resultsFile != nil {
+	// 	resultsFile.WriteString(forFile)
+	// }
+}
+
+func runTest(rf *os.File) {
+
+	fmt.Println("Starting Quick sort analysis...")
+
+	for piv = 0; piv < 4; piv++ {
+		for slc = 0; slc < 4; slc++ {
+
+			time := ""
+			memory := ""
+
+			for cycle := 1; cycle <= numbetOfCycles; cycle++ {
+				runCycle(cycle, slc, piv, &time, &memory)
+			}
+
+			if rf != nil {
+				rf.WriteString(fmt.Sprintf("[%s %s]: %s\n[%s %s]: %s\n", piv.ToString(), slc.ToString(), time[:len(time)-2], piv.ToString(), slc.ToString(), memory[:len(memory)-2]))
+			}
+		}
 	}
+
+	fmt.Println("Analysis complete! Check result.log for analysis data.")
 }
 
 func main() {
 
 	flag.Parse()
-
-	// Disable the GC during benchmarking to prevent intermediate GC pauses
-	// and live heap drops from corrupting the per-cycle delta.
 	debug.SetGCPercent(-1)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+
+		fmt.Println("Analysis interupted! Program force closed.")
+		os.Exit(0)
+	}()
 
 	if *cpuProfileFlag != "" {
 		cpuFile, err := os.Create(*cpuProfileFlag)
@@ -95,32 +128,5 @@ func main() {
 	}
 	defer resultsFile.Close()
 
-	header := fmt.Sprintf("Starting %d cycles with pivot='%s', sliceOrder='%s'\n\n", numbetOfCycles, pivotPosition, sliceOrder)
-	fmt.Print(header)
-
-	resultsFile.WriteString("\n")
-	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
-		runCycle(cycle, resultsFile)
-	}
-
-	sliceOrder = "inverse"
-	resultsFile.WriteString("\n")
-	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
-		runCycle(cycle, resultsFile)
-	}
-
-	sliceOrder = "nearly"
-	resultsFile.WriteString("\n")
-	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
-		runCycle(cycle, resultsFile)
-	}
-
-	sliceOrder = "block"
-	resultsFile.WriteString("\n")
-	for cycle := 1; cycle <= numbetOfCycles; cycle++ {
-		runCycle(cycle, resultsFile)
-	}
-
-	footer := fmt.Sprintf("\nCompleted %d cycles. Results saved to results.log\n", numbetOfCycles)
-	fmt.Print(footer)
+	runTest(resultsFile)
 }

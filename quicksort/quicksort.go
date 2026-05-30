@@ -7,8 +7,25 @@ import (
 	"sort"
 )
 
+const (
+	PivotMiddle PivotPos = iota
+	PivotFirst
+	PivotLast
+	PivotRandom
+)
+
+const (
+	SliceRandom SliceOrd = iota
+	SliceInverse
+	SliceNearly
+	SliceBlock
+)
+
 type (
 	Slice []float64
+
+	PivotPos int
+	SliceOrd int
 )
 
 const (
@@ -18,7 +35,7 @@ const (
 )
 
 var (
-	ArrayOutOfBounds     error = errors.New("Array lengh out of bounds!")
+	SliceOutOfBounds     error = errors.New("Slice lengh out of bounds!")
 	PivotOutOfBounds     error = errors.New("Pivot position out of bounds!")
 	PartitionOutOfBounds error = errors.New("Partition imposible!")
 	InvalidFlag          error = errors.New("No such flag or flag value exists!")
@@ -26,7 +43,42 @@ var (
 	Nan int = int(math.NaN())
 )
 
-func GenerateSlice(sliceOrder string) (Slice, error) {
+func (p PivotPos) ToString() string {
+
+	switch p {
+
+	case 0:
+		return "Pivot Middle"
+	case 1:
+		return "Pivot First"
+	case 2:
+		return "Pivot Last"
+	case 3:
+		return "Pivot Random"
+	default:
+		return ""
+	}
+}
+
+func (s SliceOrd) ToString() string {
+
+	switch s {
+
+	case 0:
+		return "Slice Random"
+	case 1:
+		return "Slice Inverse"
+	case 2:
+		return "Slice Nearly"
+	case 3:
+		return "Slice Block"
+	default:
+		return ""
+
+	}
+}
+
+func GenerateSlice(sliceOrder SliceOrd) (Slice, error) {
 
 	var (
 		s    Slice   = make(Slice, size)
@@ -35,17 +87,17 @@ func GenerateSlice(sliceOrder string) (Slice, error) {
 
 	switch sliceOrder {
 
-	case "random":
+	case 0:
 		for i := 0; i < size; i++ {
 			s[i] = float64(rand.Intn(maxValue))
 		}
 
-	case "inverse":
+	case 1:
 		for i := range s {
 			s[i] = float64(size-1-i) * step
 		}
 
-	case "nearly":
+	case 2:
 		for i := range s {
 			s[i] = float64(i) * step
 		}
@@ -59,7 +111,7 @@ func GenerateSlice(sliceOrder string) (Slice, error) {
 			}
 		}
 
-	case "block":
+	case 3:
 		blockSize := size / blockNumber
 		for i := range s {
 			s[i] = float64(i) * step
@@ -88,20 +140,20 @@ func GenerateSlice(sliceOrder string) (Slice, error) {
 	return s, nil
 }
 
-func Pivot(low, high int, pivotPosition string) (int, error) {
+func Pivot(low, high int, pivotPosition PivotPos) (int, error) {
 
 	switch pivotPosition {
 
-	case "first":
+	case 1:
 		return low, nil
 
-	case "last":
+	case 2:
 		return high, nil
 
-	case "middle":
+	case 0:
 		return (low + high) / 2, nil
 
-	case "random":
+	case 3:
 		return rand.Intn(high-low+1) + low, nil
 
 	default:
@@ -109,14 +161,14 @@ func Pivot(low, high int, pivotPosition string) (int, error) {
 	}
 }
 
-func (s Slice) QuickSort(pivotPosition string) error {
+func (s Slice) QuickSort(pivotPosition PivotPos) error {
 
 	if len(s) == 1 {
 		return nil
 	}
 
 	if len(s) == 0 {
-		return ArrayOutOfBounds
+		return SliceOutOfBounds
 	}
 
 	pivotIndex, err := Pivot(0, len(s)-1, pivotPosition)
